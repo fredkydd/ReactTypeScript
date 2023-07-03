@@ -1,35 +1,41 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import './App.css';
+import ExpenseForm from './components/ExpenseForm';
+import ExpenseFilter from './components/ExpenseFilter';
+import ExpenseList from './components/ExpenseList';
+import { useState } from 'react';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [expenses, setExpenses] = useState([
+      { id: 0, description: 'blah blah', amount: 9, category: 'Entertainment' },
+      { id: 1, description: 'blah blah', amount: 11, category: 'Utilities' },
+      { id: 2, description: 'blah blah', amount: 13, category: 'Groceries' },
+    ]),
+    [selectedCategory, setSelectedCategory] = useState<string>(),
+    visibleExpense = selectedCategory
+      ? expenses.filter((expense) => expense.category === selectedCategory)
+      : expenses;
 
   return (
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <ExpenseForm
+        submit={(expense) =>
+          setExpenses([...expenses, { ...expense, id: expenses.length + 1 }])
+        }
+      />
+      <hr style={{ margin: '1rem' }} />
+      <ExpenseFilter
+        selectedFilterCategory={(category) => setSelectedCategory(category)}
+      />
+      <hr style={{ margin: '1rem' }} />
+      <ExpenseList
+        // expenses={expenses}
+        expenses={visibleExpense}
+        onDelete={(id) =>
+          setExpenses(expenses.filter((expense) => expense.id !== id))
+        }
+      />
     </>
-  )
+  );
 }
 
-export default App
+export default App;
