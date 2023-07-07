@@ -1,9 +1,10 @@
+// *ctrl + .  imports what you hover
 import './App.css';
 import ExpenseForm from './components/ExpenseForm';
 import ExpenseFilter from './components/ExpenseFilter';
 import ExpenseList from './components/ExpenseList';
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 interface User {
   id: number;
@@ -14,7 +15,6 @@ interface User {
 
 function App() {
   // *useEffect + axios
-
   const [users, setUsers] = useState<User[]>([]),
     handleDeleteUser = (id: number) => {
       setUsers(users.filter((user) => user.id !== id));
@@ -80,11 +80,27 @@ function App() {
       }
     };
 
+  // *Synchronous fetch 📚
+  // useEffect(() => {
+  //   axios
+  //     .get<User[]>('https://jsonplaceholder.typicode.com/users')
+  //     .then((res) => setUsers(res.data))
+  //     .catch((err) => setError(err.message));
+  // }, []);
+
+  // *Asynchronous fetch 📚
+  // *We cant use async keyword after useEffect that's why we wrap it inside of useEffect 💡
   useEffect(() => {
-    axios
-      .get<User[]>('https://jsonplaceholder.typicode.com/users')
-      .then((res) => setUsers(res.data))
-      .catch((err) => setError(err.message));
+    (async () => {
+      try {
+        const res = await axios.get<User[]>(
+          'https://jsonplaceholder.typicode.com/users'
+        );
+        setUsers(res.data);
+      } catch (err) {
+        setError((err as AxiosError).message);
+      }
+    })();
   }, []);
 
   // *Expense = [Form, Filter, List]
