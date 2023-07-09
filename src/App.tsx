@@ -4,7 +4,7 @@ import ExpenseForm from './components/ExpenseForm';
 import ExpenseFilter from './components/ExpenseFilter';
 import ExpenseList from './components/ExpenseList';
 import { useEffect, useState } from 'react';
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, CanceledError } from 'axios';
 
 interface User {
   id: number;
@@ -16,38 +16,76 @@ interface User {
 function App() {
   // *useEffect + axios
   const [users, setUsers] = useState<User[]>([]),
-    handleDeleteUser = (id: number) => {
-      setUsers(users.filter((user) => user.id !== id));
-    },
-    [error, setError] = useState(''),
+    handleDeleteUser = (user: User) => {
+      const fetchedUsers = [...users];
+      setUsers(users.filter((item) => item.id !== user.id));
+      (async () => {
+        try {
+          await axios.delete(
+            'https://jsonplaceholder.typicode.com/users/' + user.id
+          );
+        } catch (err) {
+          setError((err as AxiosError).message);
+          // *if something bad happens retrieve the fetched data to the screen
+          setUsers(fetchedUsers);
+          // *however it will not be appeared becaues i wrote else if {error} bottom 😁
+        }
+      })();
+    };
+  //  const handleDeleteUser = (id: number) => {
+  //     setUsers(users.filter((user) => user.id !== id));
+  //   };
+
+  // console.log('user');
+  // users.length !== 0 && console.log(users.at(0));
+  // users.length !== 0 && console.log(users.at(0)?.id);
+  // users.length !== 0 && console.log(users.filter((user) => user.id === 1));
+
+  const spinner = (
+    <div
+      style={{ display: 'grid', justifyContent: 'center', fontSize: '2rem' }}
+    >
+      <div className="spinner-border text-danger" role="status">
+        <span className="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  );
+
+  const [error, setError] = useState<string>(),
+    [loading, setLoading] = useState(true),
     toggleUsers = () => {
-      if (error) {
+      if (!users.length && !loading && !error) {
+        // console.log(
+        //   `else if users.length === 0 && error === '' && loading === false `
+        // );
         return (
-          <p
+          <h1
             style={{
               display: 'grid',
               justifyContent: 'center',
-              color: 'red',
-              fontSize: '2rem',
             }}
           >
-            <strong>{error} ☹️</strong>
-          </p>
+            You've successfully deleted all the datas 🙂
+          </h1>
         );
-      } else if (users.length === 0 && error === '') {
+      } else if (loading) {
+        // console.log('if renders');
+        return spinner;
+      } else if (error) {
+        // console.log('else if error');
         return (
-          <p
+          <h1
             style={{
               display: 'grid',
               justifyContent: 'center',
               color: 'red',
-              fontSize: '2rem',
             }}
           >
-            <strong>All datas were deleted ☹️</strong>
-          </p>
+            {error} ☹️
+          </h1>
         );
       } else {
+        // console.log('table');
         return (
           <table className="table table-striped">
             <thead>
@@ -66,7 +104,8 @@ function App() {
                   <td>{user.email}</td>
                   <td>
                     <button
-                      onClick={() => handleDeleteUser(user.id)}
+                      onClick={() => handleDeleteUser(user)}
+                      // onClick={() => handleDeleteUser(user.id)}
                       className="btn btn-outline-danger"
                     >
                       Delete ❌
@@ -82,25 +121,67 @@ function App() {
 
   // *Synchronous fetch 📚
   // useEffect(() => {
+  //   const controller = new AbortController();
+  //   setLoading(true);
   //   axios
-  //     .get<User[]>('https://jsonplaceholder.typicode.com/users')
-  //     .then((res) => setUsers(res.data))
-  //     .catch((err) => setError(err.message));
+  //     .get<User[]>('https://jsonplaceholder.typicode.com/users', {
+  //       signal: controller.signal,
+  //     })
+  //     .then((res) => {
+  //       setUsers(res.data);
+  //       setLoading(false);
+  //     })
+  //     .catch((err) => {
+  //       if (err instanceof CanceledError) return;
+  //       setError((err as AxiosError).message);
+  //     })
+  //     .finally(() => {
+  //       console.log('Finished');
+  //       setLoading(false);
+  //     });
+  //   return () => controller.abort();
   // }, []);
 
   // *Asynchronous fetch 📚
   // *We cant use async keyword after useEffect that's why we wrap it inside of useEffect 💡
   useEffect(() => {
+    const controller = new AbortController();
+
     (async () => {
       try {
+        // const res = await axios.get<User[]>(
+        //   'https://jsonplaceholder.typicode.com/users',
+        //   { signal: controller.signal }
+        // );
+        // *By appending the ?_cache= + Date.now() to the API URL, it ensures that each request is unique and not cached by the browser.
         const res = await axios.get<User[]>(
-          'https://jsonplaceholder.typicode.com/users'
+          'https://jsonplaceholder.typicode.com/users?_cache=' + Date.now(),
+          { signal: controller.signal }
         );
         setUsers(res.data);
+        // console.log('res.data');
+        // console.log(res.data.at(0)?.id);
+        // console.log(res.data.filter((user) => user.id === 1));
       } catch (err) {
+        if (err instanceof CanceledError) return;
         setError((err as AxiosError).message);
+      } finally {
+        setLoading(false);
+        // console.log('finally');
       }
     })();
+
+    // const timer = setTimeout(() => {
+    //   fetchData();
+    // }, 3000);
+
+    // return () => {
+    //   clearTimeout(timer);
+    //   controller.abort();
+    // };
+
+    // *return is for removing if there is any pending request
+    return () => controller.abort();
   }, []);
 
   // *Expense = [Form, Filter, List]
@@ -139,6 +220,7 @@ function App() {
       <hr style={{ margin: '2rem 1rem' }} />
 
       {toggleUsers()}
+
       <hr style={{ margin: '2rem 1rem' }} />
     </>
   );
