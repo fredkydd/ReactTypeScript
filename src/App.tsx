@@ -15,6 +15,7 @@ interface User {
 
 function App() {
   // *useEffect + axios
+  // *DELETE
   const [users, setUsers] = useState<User[]>([]),
     handleDeleteUser = (user: User) => {
       const fetchedUsers = [...users];
@@ -51,74 +52,105 @@ function App() {
     </div>
   );
 
-  const [error, setError] = useState<string>(),
-    [loading, setLoading] = useState(true),
-    toggleUsers = () => {
-      if (!users.length && !loading && !error) {
-        // console.log(
-        //   `else if users.length === 0 && error === '' && loading === false `
-        // );
-        return (
-          <h1
-            style={{
-              display: 'grid',
-              justifyContent: 'center',
-            }}
-          >
-            You've successfully deleted all the datas 🙂
-          </h1>
-        );
-      } else if (loading) {
-        // console.log('if renders');
-        return spinner;
-      } else if (error) {
-        // console.log('else if error');
-        return (
-          <h1
-            style={{
-              display: 'grid',
-              justifyContent: 'center',
-              color: 'red',
-            }}
-          >
-            {error} ☹️
-          </h1>
-        );
-      } else {
-        // console.log('table');
-        return (
-          <table className="table table-striped">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Username</th>
-                <th>Email</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td>{user.name}</td>
-                  <td>{user.username}</td>
-                  <td>{user.email}</td>
-                  <td>
-                    <button
-                      onClick={() => handleDeleteUser(user)}
-                      // onClick={() => handleDeleteUser(user.id)}
-                      className="btn btn-outline-danger"
-                    >
-                      Delete ❌
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        );
-      }
-    };
+  // *POST
+  const addUser = () => {
+    const originalUsers = [...users],
+      me = {
+        id: 0,
+        name: 'Fred',
+        username: 'illusion',
+        email: 'faridthedev@gmail.com',
+      };
+    setUsers([...users, me]);
 
+    (async () => {
+      try {
+        const res = await axios.post(
+          'https://jsonplaceholder.typicode.com/users',
+          me
+        );
+        setUsers([...users, res.data]);
+        // const savedUser = res.data;
+        // setUsers([...users, savedUser]);
+      } catch (err) {
+        setError((err as AxiosError).message);
+        setUsers(originalUsers);
+      } finally {
+        console.log('Finished ✅');
+      }
+    })();
+  };
+
+  const [error, setError] = useState<string>(),
+    [loading, setLoading] = useState(true);
+
+  // const  toggleUsers = () => {
+  //   if (!users.length && !loading && !error) {
+  //     // console.log(
+  //     //   `else if users.length === 0 && error === '' && loading === false `
+  //     // );
+  //     return (
+  //       <h1
+  //         style={{
+  //           display: 'grid',
+  //           justifyContent: 'center',
+  //         }}
+  //       >
+  //         You've successfully deleted all the datas 🙂
+  //       </h1>
+  //     );
+  //   } else if (loading) {
+  //     // console.log('if renders');
+  //     return spinner;
+  //   } else if (error) {
+  //     // console.log('else if error');
+  //     return (
+  //       <h1
+  //         style={{
+  //           display: 'grid',
+  //           justifyContent: 'center',
+  //           color: 'red',
+  //         }}
+  //       >
+  //         {error} ☹️
+  //       </h1>
+  //     );
+  //   } else {
+  //     // console.log('table');
+  //     return (
+  //       <table className="table table-striped">
+  //         <thead>
+  //           <tr>
+  //             <th>Name</th>
+  //             <th>Username</th>
+  //             <th>Email</th>
+  //             <th></th>
+  //           </tr>
+  //         </thead>
+  //         <tbody>
+  //           {users.map((user) => (
+  //             <tr key={user.id}>
+  //               <td>{user.name}</td>
+  //               <td>{user.username}</td>
+  //               <td>{user.email}</td>
+  //               <td>
+  //                 <button
+  //                   onClick={() => handleDeleteUser(user)}
+  //                   // onClick={() => handleDeleteUser(user.id)}
+  //                   className="btn btn-outline-danger"
+  //                 >
+  //                   Delete ❌
+  //                 </button>
+  //               </td>
+  //             </tr>
+  //           ))}
+  //         </tbody>
+  //       </table>
+  //     );
+  //   }
+  // };
+
+  // *GET
   // *Synchronous fetch 📚
   // useEffect(() => {
   //   const controller = new AbortController();
@@ -144,6 +176,8 @@ function App() {
 
   // *Asynchronous fetch 📚
   // *We cant use async keyword after useEffect that's why we wrap it inside of useEffect 💡
+
+  // *GET
   useEffect(() => {
     const controller = new AbortController();
 
@@ -181,8 +215,33 @@ function App() {
     // };
 
     // *return is for removing if there is any pending request
+
     return () => controller.abort();
   }, []);
+
+  // *UPDATE PATCH && PUT
+  const handleUpdateUser = (user: User) => {
+    const originalUsers = [...users];
+    const updatedUsers = { ...users, name: user.name + '!' };
+    setUsers(
+      users.map((item) =>
+        item.id === user.id ? { ...item, name: user.name + '!' } : item
+      )
+    );
+    // !Patch is for updating the parametr of an obj
+    // !Put is updating the whole object
+    (async () => {
+      try {
+        await axios.patch(
+          'https://jsonplaceholder.typicode.com/users/' + user.id,
+          updatedUsers
+        );
+      } catch (err) {
+        setError((err as AxiosError).message);
+        setUsers(originalUsers);
+      }
+    })();
+  };
 
   // *Expense = [Form, Filter, List]
   const [expenses, setExpenses] = useState([
@@ -219,7 +278,50 @@ function App() {
       />
       <hr style={{ margin: '2rem 1rem' }} />
 
-      {toggleUsers()}
+      {error && <h1 className="text-danger text-center">{error}</h1>}
+      {loading && spinner}
+      <button className="btn btn-outline-success" onClick={addUser}>
+        Add ✅
+      </button>
+      <table className="table table-striped">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((user) => (
+            <tr key={user.id}>
+              <td>{user.name}</td>
+              <td>{user.username}</td>
+              <td>{user.email}</td>
+              <td>
+                <button
+                  className="btn btn-outline-secondary"
+                  onClick={() => handleUpdateUser(user)}
+                >
+                  Update
+                </button>
+              </td>
+              <td>
+                <button
+                  onClick={() => handleDeleteUser(user)}
+                  // onClick={() => handleDeleteUser(user.id)}
+                  className="btn btn-outline-danger"
+                >
+                  Delete ❌
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* {toggleUsers()} */}
 
       <hr style={{ margin: '2rem 1rem' }} />
     </>
